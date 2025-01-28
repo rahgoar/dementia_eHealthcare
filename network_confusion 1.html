@@ -1,0 +1,937 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 1400px;
+                 height: 700px;
+                 background-color: #eeeeee;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 1400px;
+                 height: 700px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="Aricept">Aricept</option>
+                                
+                                    <option value="atypical chest pain">atypical chest pain</option>
+                                
+                                    <option value="chest pain">chest pain</option>
+                                
+                                    <option value="T just above 480">T just above 480</option>
+                                
+                                    <option value="ekg">ekg</option>
+                                
+                                    <option value="480">480</option>
+                                
+                                    <option value="PEP">PEP</option>
+                                
+                                    <option value="PCP">PCP</option>
+                                
+                                    <option value="bradycardia">bradycardia</option>
+                                
+                                    <option value="aricept">aricept</option>
+                                
+                                    <option value="syncope">syncope</option>
+                                
+                                    <option value="arrhythmia">arrhythmia</option>
+                                
+                                    <option value="Sumeet Gandhi">Sumeet Gandhi</option>
+                                
+                                    <option value="MD">MD</option>
+                                
+                                    <option value="X-ray">X-ray</option>
+                                
+                                    <option value="imaging">imaging</option>
+                                
+                                    <option value="pressure sores">pressure sores</option>
+                                
+                                    <option value="wound care">wound care</option>
+                                
+                                    <option value="Xray">Xray</option>
+                                
+                                    <option value="saline">saline</option>
+                                
+                                    <option value="irrigating">irrigating</option>
+                                
+                                    <option value="Kimberly LeBlanc">Kimberly LeBlanc</option>
+                                
+                                    <option value="RN">RN</option>
+                                
+                                    <option value="NSWOC">NSWOC</option>
+                                
+                                    <option value="AST">AST</option>
+                                
+                                    <option value="liver enzymes">liver enzymes</option>
+                                
+                                    <option value="CT scan">CT scan</option>
+                                
+                                    <option value="Ultrasound">Ultrasound</option>
+                                
+                                    <option value="Hep A reactive">Hep A reactive</option>
+                                
+                                    <option value="Osteoporosis">Osteoporosis</option>
+                                
+                                    <option value="Osteoarthritis">Osteoarthritis</option>
+                                
+                                    <option value="CHol">CHol</option>
+                                
+                                    <option value="lipids">lipids</option>
+                                
+                                    <option value="CT">CT</option>
+                                
+                                    <option value="MRI">MRI</option>
+                                
+                                    <option value="CT abdomen">CT abdomen</option>
+                                
+                                    <option value="abdominal pain">abdominal pain</option>
+                                
+                                    <option value="Wilson's">Wilson's</option>
+                                
+                                    <option value="inflammatory disease">inflammatory disease</option>
+                                
+                                    <option value="fibro">fibro</option>
+                                
+                                    <option value="Fibrosis 4 index">Fibrosis 4 index</option>
+                                
+                                    <option value="fibroscan">fibroscan</option>
+                                
+                                    <option value="focal fat sparing">focal fat sparing</option>
+                                
+                                    <option value="fibrosis">fibrosis</option>
+                                
+                                    <option value="progression">progression</option>
+                                
+                                    <option value="dyslipidemia">dyslipidemia</option>
+                                
+                                    <option value="heart disease">heart disease</option>
+                                
+                                    <option value="diabetes">diabetes</option>
+                                
+                                    <option value="low carb">low carb</option>
+                                
+                                    <option value="Lifestyle management">Lifestyle management</option>
+                                
+                                    <option value="mediterannean diet">mediterannean diet</option>
+                                
+                                    <option value="vitamin E">vitamin E</option>
+                                
+                                    <option value="enzyme">enzyme</option>
+                                
+                                    <option value="physical activity">physical activity</option>
+                                
+                                    <option value="steatohepatitis">steatohepatitis</option>
+                                
+                                    <option value="COPD">COPD</option>
+                                
+                                    <option value="smoking">smoking</option>
+                                
+                                    <option value="ex smoking">ex smoking</option>
+                                
+                                    <option value="pneumonia">pneumonia</option>
+                                
+                                    <option value="emphysema">emphysema</option>
+                                
+                                    <option value="Ventolin">Ventolin</option>
+                                
+                                    <option value="cough">cough</option>
+                                
+                                    <option value="cough symptoms">cough symptoms</option>
+                                
+                                    <option value="bronchiectasis">bronchiectasis</option>
+                                
+                                    <option value="hypoxic drive">hypoxic drive</option>
+                                
+                                    <option value="oxygen">oxygen</option>
+                                
+                                    <option value="carbon dioxide">carbon dioxide</option>
+                                
+                                    <option value="pulmonary function testing">pulmonary function testing</option>
+                                
+                                    <option value="pulse oximeter">pulse oximeter</option>
+                                
+                                    <option value="titrate">titrate</option>
+                                
+                                    <option value="Azithromycin">Azithromycin</option>
+                                
+                                    <option value="antibiotic">antibiotic</option>
+                                
+                                    <option value="Azithromycin 250 mg">Azithromycin 250 mg</option>
+                                
+                                    <option value="Gabapentin">Gabapentin</option>
+                                
+                                    <option value="essential tremor">essential tremor</option>
+                                
+                                    <option value="essential tremors">essential tremors</option>
+                                
+                                    <option value="Inderal">Inderal</option>
+                                
+                                    <option value="depression">depression</option>
+                                
+                                    <option value="mood">mood</option>
+                                
+                                    <option value="BID">BID</option>
+                                
+                                    <option value="neuro">neuro</option>
+                                
+                                    <option value="neurology">neurology</option>
+                                
+                                    <option value="meniscectomy">meniscectomy</option>
+                                
+                                    <option value="polio">polio</option>
+                                
+                                    <option value="neuro consult">neuro consult</option>
+                                
+                                    <option value="RBB">RBB</option>
+                                
+                                    <option value="atrial fibrillation">atrial fibrillation</option>
+                                
+                                    <option value="LPR">LPR</option>
+                                
+                                    <option value="hoarse voice">hoarse voice</option>
+                                
+                                    <option value="paroxysmal atrial fibrillation">paroxysmal atrial fibrillation</option>
+                                
+                                    <option value="apixaban">apixaban</option>
+                                
+                                    <option value="Moderate Obstructive Sleep Apnea">Moderate Obstructive Sleep Apnea</option>
+                                
+                                    <option value="bipolar disorder">bipolar disorder</option>
+                                
+                                    <option value="hypomanic">hypomanic</option>
+                                
+                                    <option value="primidone">primidone</option>
+                                
+                                    <option value="Synthroid">Synthroid</option>
+                                
+                                    <option value="Pristiq">Pristiq</option>
+                                
+                                    <option value="flu vaccine">flu vaccine</option>
+                                
+                                    <option value="Immunizations">Immunizations</option>
+                                
+                                    <option value="Immunization">Immunization</option>
+                                
+                                    <option value="flu">flu</option>
+                                
+                                    <option value="Shingrix">Shingrix</option>
+                                
+                                    <option value="Nov 15, 2013">Nov 15, 2013</option>
+                                
+                                    <option value="Nov 15, 2015">Nov 15, 2015</option>
+                                
+                                    <option value="flu shot">flu shot</option>
+                                
+                                    <option value="Oct 30, 2019">Oct 30, 2019</option>
+                                
+                                    <option value="Fluzone Quad">Fluzone Quad</option>
+                                
+                                    <option value="2018">2018</option>
+                                
+                                    <option value="opioid">opioid</option>
+                                
+                                    <option value="drug">drug</option>
+                                
+                                    <option value="piously">piously</option>
+                                
+                                    <option value="alcoholic drink">alcoholic drink</option>
+                                
+                                    <option value="TID">TID</option>
+                                
+                                    <option value="topiramate">topiramate</option>
+                                
+                                    <option value="memory worsening">memory worsening</option>
+                                
+                                    <option value="DBS program">DBS program</option>
+                                
+                                    <option value="TOH">TOH</option>
+                                
+                                    <option value="pain clinic">pain clinic</option>
+                                
+                                    <option value="ToH">ToH</option>
+                                
+                                    <option value="allergies">allergies</option>
+                                
+                                    <option value="intolerant">intolerant</option>
+                                
+                                    <option value="eGFR">eGFR</option>
+                                
+                                    <option value="renal function">renal function</option>
+                                
+                                    <option value="intolerances">intolerances</option>
+                                
+                                    <option value="hydromorphone">hydromorphone</option>
+                                
+                                    <option value="delirium">delirium</option>
+                                
+                                    <option value="dementia">dementia</option>
+                                
+                                    <option value="Uacr">Uacr</option>
+                                
+                                    <option value="creatinine">creatinine</option>
+                                
+                                    <option value="CKD">CKD</option>
+                                
+                                    <option value="HTN">HTN</option>
+                                
+                                    <option value="masked hypertension">masked hypertension</option>
+                                
+                                    <option value="obstructive symptoms">obstructive symptoms</option>
+                                
+                                    <option value="Flomax">Flomax</option>
+                                
+                                    <option value="NSAIDs">NSAIDs</option>
+                                
+                                    <option value="BPH">BPH</option>
+                                
+                                    <option value="ischemic event">ischemic event</option>
+                                
+                                    <option value="obstruction">obstruction</option>
+                                
+                                    <option value="GFR">GFR</option>
+                                
+                                    <option value="ACR">ACR</option>
+                                
+                                    <option value="signs">signs</option>
+                                
+                                    <option value="BP">BP</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#00FF00", "id": "Aricept", "label": "Aricept", "shape": "circle"}, {"color": "#00FF00", "id": "atypical chest pain", "label": "atypical chest pain", "shape": "circle"}, {"color": "#00FF00", "id": "chest pain", "label": "chest pain", "shape": "circle"}, {"color": "#00FF00", "id": "T just above 480", "label": "T just above 480", "shape": "circle"}, {"color": "#00FF00", "id": "ekg", "label": "ekg", "shape": "circle"}, {"color": "#00FF00", "id": "480", "label": "480", "shape": "circle"}, {"color": "#00FF00", "id": "PEP", "label": "PEP", "shape": "circle"}, {"color": "#00FF00", "id": "PCP", "label": "PCP", "shape": "circle"}, {"color": "#00FF00", "id": "bradycardia", "label": "bradycardia", "shape": "circle"}, {"color": "#00FF00", "id": "aricept", "label": "aricept", "shape": "circle"}, {"color": "#00FF00", "id": "syncope", "label": "syncope", "shape": "circle"}, {"color": "#00FF00", "id": "arrhythmia", "label": "arrhythmia", "shape": "circle"}, {"color": "#00FF00", "id": "Sumeet Gandhi", "label": "Sumeet Gandhi", "shape": "circle"}, {"color": "#00FF00", "id": "MD", "label": "MD", "shape": "circle"}, {"color": "#00FF00", "id": "X-ray", "label": "X-ray", "shape": "circle"}, {"color": "#00FF00", "id": "imaging", "label": "imaging", "shape": "circle"}, {"color": "#00FF00", "id": "pressure sores", "label": "pressure sores", "shape": "circle"}, {"color": "#00FF00", "id": "wound care", "label": "wound care", "shape": "circle"}, {"color": "#00FF00", "id": "Xray", "label": "Xray", "shape": "circle"}, {"color": "#00FF00", "id": "saline", "label": "saline", "shape": "circle"}, {"color": "#00FF00", "id": "irrigating", "label": "irrigating", "shape": "circle"}, {"color": "#00FF00", "id": "Kimberly LeBlanc", "label": "Kimberly LeBlanc", "shape": "circle"}, {"color": "#00FF00", "id": "RN", "label": "RN", "shape": "circle"}, {"color": "#00FF00", "id": "NSWOC", "label": "NSWOC", "shape": "circle"}, {"color": "#00FF00", "id": "AST", "label": "AST", "shape": "circle"}, {"color": "#00FF00", "id": "liver enzymes", "label": "liver enzymes", "shape": "circle"}, {"color": "#00FF00", "id": "CT scan", "label": "CT scan", "shape": "circle"}, {"color": "#00FF00", "id": "Ultrasound", "label": "Ultrasound", "shape": "circle"}, {"color": "#00FF00", "id": "Hep A reactive", "label": "Hep A reactive", "shape": "circle"}, {"color": "#00FF00", "id": "Osteoporosis", "label": "Osteoporosis", "shape": "circle"}, {"color": "#00FF00", "id": "Osteoarthritis", "label": "Osteoarthritis", "shape": "circle"}, {"color": "#00FF00", "id": "CHol", "label": "CHol", "shape": "circle"}, {"color": "#00FF00", "id": "lipids", "label": "lipids", "shape": "circle"}, {"color": "#00FF00", "id": "CT", "label": "CT", "shape": "circle"}, {"color": "#00FF00", "id": "MRI", "label": "MRI", "shape": "circle"}, {"color": "#00FF00", "id": "CT abdomen", "label": "CT abdomen", "shape": "circle"}, {"color": "#00FF00", "id": "abdominal pain", "label": "abdominal pain", "shape": "circle"}, {"color": "#00FF00", "id": "Wilson\u0027s", "label": "Wilson\u0027s", "shape": "circle"}, {"color": "#00FF00", "id": "inflammatory disease", "label": "inflammatory disease", "shape": "circle"}, {"color": "#00FF00", "id": "fibro", "label": "fibro", "shape": "circle"}, {"color": "#00FF00", "id": "Fibrosis 4 index", "label": "Fibrosis 4 index", "shape": "circle"}, {"color": "#00FF00", "id": "fibroscan", "label": "fibroscan", "shape": "circle"}, {"color": "#00FF00", "id": "focal fat sparing", "label": "focal fat sparing", "shape": "circle"}, {"color": "#00FF00", "id": "fibrosis", "label": "fibrosis", "shape": "circle"}, {"color": "#00FF00", "id": "progression", "label": "progression", "shape": "circle"}, {"color": "#00FF00", "id": "dyslipidemia", "label": "dyslipidemia", "shape": "circle"}, {"color": "#00FF00", "id": "heart disease", "label": "heart disease", "shape": "circle"}, {"color": "#00FF00", "id": "diabetes", "label": "diabetes", "shape": "circle"}, {"color": "#00FF00", "id": "low carb", "label": "low carb", "shape": "circle"}, {"color": "#00FF00", "id": "Lifestyle management", "label": "Lifestyle management", "shape": "circle"}, {"color": "#00FF00", "id": "mediterannean diet", "label": "mediterannean diet", "shape": "circle"}, {"color": "#00FF00", "id": "vitamin E", "label": "vitamin E", "shape": "circle"}, {"color": "#00FF00", "id": "enzyme", "label": "enzyme", "shape": "circle"}, {"color": "#00FF00", "id": "physical activity", "label": "physical activity", "shape": "circle"}, {"color": "#00FF00", "id": "steatohepatitis", "label": "steatohepatitis", "shape": "circle"}, {"color": "#00FF00", "id": "COPD", "label": "COPD", "shape": "circle"}, {"color": "#00FF00", "id": "smoking", "label": "smoking", "shape": "circle"}, {"color": "#00FF00", "id": "ex smoking", "label": "ex smoking", "shape": "circle"}, {"color": "#00FF00", "id": "pneumonia", "label": "pneumonia", "shape": "circle"}, {"color": "#00FF00", "id": "emphysema", "label": "emphysema", "shape": "circle"}, {"color": "#00FF00", "id": "Ventolin", "label": "Ventolin", "shape": "circle"}, {"color": "#00FF00", "id": "cough", "label": "cough", "shape": "circle"}, {"color": "#00FF00", "id": "cough symptoms", "label": "cough symptoms", "shape": "circle"}, {"color": "#00FF00", "id": "bronchiectasis", "label": "bronchiectasis", "shape": "circle"}, {"color": "#00FF00", "id": "hypoxic drive", "label": "hypoxic drive", "shape": "circle"}, {"color": "#00FF00", "id": "oxygen", "label": "oxygen", "shape": "circle"}, {"color": "#00FF00", "id": "carbon dioxide", "label": "carbon dioxide", "shape": "circle"}, {"color": "#00FF00", "id": "pulmonary function testing", "label": "pulmonary function testing", "shape": "circle"}, {"color": "#00FF00", "id": "pulse oximeter", "label": "pulse oximeter", "shape": "circle"}, {"color": "#00FF00", "id": "titrate", "label": "titrate", "shape": "circle"}, {"color": "#00FF00", "id": "Azithromycin", "label": "Azithromycin", "shape": "circle"}, {"color": "#00FF00", "id": "antibiotic", "label": "antibiotic", "shape": "circle"}, {"color": "#00FF00", "id": "Azithromycin 250 mg", "label": "Azithromycin 250 mg", "shape": "circle"}, {"color": "#00FF00", "id": "Gabapentin", "label": "Gabapentin", "shape": "circle"}, {"color": "#00FF00", "id": "essential tremor", "label": "essential tremor", "shape": "circle"}, {"color": "#00FF00", "id": "essential tremors", "label": "essential tremors", "shape": "circle"}, {"color": "#00FF00", "id": "Inderal", "label": "Inderal", "shape": "circle"}, {"color": "#00FF00", "id": "depression", "label": "depression", "shape": "circle"}, {"color": "#00FF00", "id": "mood", "label": "mood", "shape": "circle"}, {"color": "#00FF00", "id": "BID", "label": "BID", "shape": "circle"}, {"color": "#00FF00", "id": "neuro", "label": "neuro", "shape": "circle"}, {"color": "#00FF00", "id": "neurology", "label": "neurology", "shape": "circle"}, {"color": "#00FF00", "id": "meniscectomy", "label": "meniscectomy", "shape": "circle"}, {"color": "#00FF00", "id": "polio", "label": "polio", "shape": "circle"}, {"color": "#00FF00", "id": "neuro consult", "label": "neuro consult", "shape": "circle"}, {"color": "#00FF00", "id": "RBB", "label": "RBB", "shape": "circle"}, {"color": "#00FF00", "id": "atrial fibrillation", "label": "atrial fibrillation", "shape": "circle"}, {"color": "#00FF00", "id": "LPR", "label": "LPR", "shape": "circle"}, {"color": "#00FF00", "id": "hoarse voice", "label": "hoarse voice", "shape": "circle"}, {"color": "#00FF00", "id": "paroxysmal atrial fibrillation", "label": "paroxysmal atrial fibrillation", "shape": "circle"}, {"color": "#00FF00", "id": "apixaban", "label": "apixaban", "shape": "circle"}, {"color": "#00FF00", "id": "Moderate Obstructive Sleep Apnea", "label": "Moderate Obstructive Sleep Apnea", "shape": "circle"}, {"color": "#00FF00", "id": "bipolar disorder", "label": "bipolar disorder", "shape": "circle"}, {"color": "#00FF00", "id": "hypomanic", "label": "hypomanic", "shape": "circle"}, {"color": "#00FF00", "id": "primidone", "label": "primidone", "shape": "circle"}, {"color": "#00FF00", "id": "Synthroid", "label": "Synthroid", "shape": "circle"}, {"color": "#00FF00", "id": "Pristiq", "label": "Pristiq", "shape": "circle"}, {"color": "#00FF00", "id": "flu vaccine", "label": "flu vaccine", "shape": "circle"}, {"color": "#00FF00", "id": "Immunizations", "label": "Immunizations", "shape": "circle"}, {"color": "#00FF00", "id": "Immunization", "label": "Immunization", "shape": "circle"}, {"color": "#00FF00", "id": "flu", "label": "flu", "shape": "circle"}, {"color": "#00FF00", "id": "Shingrix", "label": "Shingrix", "shape": "circle"}, {"color": "#00FF00", "id": "Nov 15, 2013", "label": "Nov 15, 2013", "shape": "circle"}, {"color": "#00FF00", "id": "Nov 15, 2015", "label": "Nov 15, 2015", "shape": "circle"}, {"color": "#00FF00", "id": "flu shot", "label": "flu shot", "shape": "circle"}, {"color": "#00FF00", "id": "Oct 30, 2019", "label": "Oct 30, 2019", "shape": "circle"}, {"color": "#00FF00", "id": "Fluzone Quad", "label": "Fluzone Quad", "shape": "circle"}, {"color": "#00FF00", "id": "2018", "label": "2018", "shape": "circle"}, {"color": "#00FF00", "id": "opioid", "label": "opioid", "shape": "circle"}, {"color": "#00FF00", "id": "drug", "label": "drug", "shape": "circle"}, {"color": "#00FF00", "id": "piously", "label": "piously", "shape": "circle"}, {"color": "#00FF00", "id": "alcoholic drink", "label": "alcoholic drink", "shape": "circle"}, {"color": "#00FF00", "id": "TID", "label": "TID", "shape": "circle"}, {"color": "#00FF00", "id": "topiramate", "label": "topiramate", "shape": "circle"}, {"color": "#00FF00", "id": "memory worsening", "label": "memory worsening", "shape": "circle"}, {"color": "#00FF00", "id": "DBS program", "label": "DBS program", "shape": "circle"}, {"color": "#00FF00", "id": "TOH", "label": "TOH", "shape": "circle"}, {"color": "#00FF00", "id": "pain clinic", "label": "pain clinic", "shape": "circle"}, {"color": "#00FF00", "id": "ToH", "label": "ToH", "shape": "circle"}, {"color": "#00FF00", "id": "allergies", "label": "allergies", "shape": "circle"}, {"color": "#00FF00", "id": "intolerant", "label": "intolerant", "shape": "circle"}, {"color": "#00FF00", "id": "eGFR", "label": "eGFR", "shape": "circle"}, {"color": "#00FF00", "id": "renal function", "label": "renal function", "shape": "circle"}, {"color": "#00FF00", "id": "intolerances", "label": "intolerances", "shape": "circle"}, {"color": "#00FF00", "id": "hydromorphone", "label": "hydromorphone", "shape": "circle"}, {"color": "#00FF00", "id": "delirium", "label": "delirium", "shape": "circle"}, {"color": "#00FF00", "id": "dementia", "label": "dementia", "shape": "circle"}, {"color": "#00FF00", "id": "Uacr", "label": "Uacr", "shape": "circle"}, {"color": "#00FF00", "id": "creatinine", "label": "creatinine", "shape": "circle"}, {"color": "#00FF00", "id": "CKD", "label": "CKD", "shape": "circle"}, {"color": "#00FF00", "id": "HTN", "label": "HTN", "shape": "circle"}, {"color": "#00FF00", "id": "masked hypertension", "label": "masked hypertension", "shape": "circle"}, {"color": "#00FF00", "id": "obstructive symptoms", "label": "obstructive symptoms", "shape": "circle"}, {"color": "#00FF00", "id": "Flomax", "label": "Flomax", "shape": "circle"}, {"color": "#00FF00", "id": "NSAIDs", "label": "NSAIDs", "shape": "circle"}, {"color": "#00FF00", "id": "BPH", "label": "BPH", "shape": "circle"}, {"color": "#00FF00", "id": "ischemic event", "label": "ischemic event", "shape": "circle"}, {"color": "#00FF00", "id": "obstruction", "label": "obstruction", "shape": "circle"}, {"color": "#00FF00", "id": "GFR", "label": "GFR", "shape": "circle"}, {"color": "#00FF00", "id": "ACR", "label": "ACR", "shape": "circle"}, {"color": "#00FF00", "id": "signs", "label": "signs", "shape": "circle"}, {"color": "#00FF00", "id": "BP", "label": "BP", "shape": "circle"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "Aricept", "label": "medical condition treated", "title": "medical condition treated", "to": "atypical chest pain"}, {"arrows": "to", "from": "atypical chest pain", "label": "drug used for treatment", "title": "drug used for treatment", "to": "Aricept"}, {"arrows": "to", "from": "Aricept", "label": "medical condition treated", "title": "medical condition treated", "to": "chest pain"}, {"arrows": "to", "from": "chest pain", "label": "drug used for treatment", "title": "drug used for treatment", "to": "Aricept"}, {"arrows": "to", "from": "T just above 480", "label": "instance of", "title": "instance of", "to": "ekg"}, {"arrows": "to", "from": "T just above 480", "label": "point in time", "title": "point in time", "to": "480"}, {"arrows": "to", "from": "PEP", "label": "subclass of", "title": "subclass of", "to": "PCP"}, {"arrows": "to", "from": "bradycardia", "label": "has cause", "title": "has cause", "to": "aricept"}, {"arrows": "to", "from": "aricept", "label": "has effect", "title": "has effect", "to": "bradycardia"}, {"arrows": "to", "from": "bradycardia", "label": "subclass of", "title": "subclass of", "to": "aricept"}, {"arrows": "to", "from": "syncope", "label": "subclass of", "title": "subclass of", "to": "arrhythmia"}, {"arrows": "to", "from": "Sumeet Gandhi", "label": "occupation", "title": "occupation", "to": "MD"}, {"arrows": "to", "from": "syncope", "label": "has cause", "title": "has cause", "to": "arrhythmia"}, {"arrows": "to", "from": "X-ray", "label": "subclass of", "title": "subclass of", "to": "imaging"}, {"arrows": "to", "from": "pressure sores", "label": "subclass of", "title": "subclass of", "to": "wound care"}, {"arrows": "to", "from": "X-ray", "label": "instance of", "title": "instance of", "to": "imaging"}, {"arrows": "to", "from": "Xray", "label": "subclass of", "title": "subclass of", "to": "imaging"}, {"arrows": "to", "from": "Xray", "label": "instance of", "title": "instance of", "to": "imaging"}, {"arrows": "to", "from": "imaging", "label": "different from", "title": "different from", "to": "Xray"}, {"arrows": "to", "from": "Xray", "label": "different from", "title": "different from", "to": "imaging"}, {"arrows": "to", "from": "saline", "label": "use", "title": "use", "to": "irrigating"}, {"arrows": "to", "from": "irrigating", "label": "uses", "title": "uses", "to": "saline"}, {"arrows": "to", "from": "Kimberly LeBlanc", "label": "occupation", "title": "occupation", "to": "RN"}, {"arrows": "to", "from": "Kimberly LeBlanc", "label": "member of", "title": "member of", "to": "NSWOC"}, {"arrows": "to", "from": "NSWOC", "label": "subclass of", "title": "subclass of", "to": "RN"}, {"arrows": "to", "from": "AST", "label": "subclass of", "title": "subclass of", "to": "liver enzymes"}, {"arrows": "to", "from": "CT scan", "label": "subclass of", "title": "subclass of", "to": "Ultrasound"}, {"arrows": "to", "from": "Hep A reactive", "label": "subclass of", "title": "subclass of", "to": "liver enzymes"}, {"arrows": "to", "from": "Osteoporosis", "label": "subclass of", "title": "subclass of", "to": "Osteoarthritis"}, {"arrows": "to", "from": "Osteoporosis", "label": "has cause", "title": "has cause", "to": "Osteoarthritis"}, {"arrows": "to", "from": "CHol", "label": "subclass of", "title": "subclass of", "to": "lipids"}, {"arrows": "to", "from": "CT", "label": "followed by", "title": "followed by", "to": "MRI"}, {"arrows": "to", "from": "CT abdomen", "label": "subclass of", "title": "subclass of", "to": "abdominal pain"}, {"arrows": "to", "from": "abdominal pain", "label": "has cause", "title": "has cause", "to": "CT abdomen"}, {"arrows": "to", "from": "Wilson\u0027s", "label": "subclass of", "title": "subclass of", "to": "inflammatory disease"}, {"arrows": "to", "from": "fibro", "label": "subclass of", "title": "subclass of", "to": "inflammatory disease"}, {"arrows": "to", "from": "fibro", "label": "has cause", "title": "has cause", "to": "Wilson\u0027s"}, {"arrows": "to", "from": "Fibrosis 4 index", "label": "instance of", "title": "instance of", "to": "fibroscan"}, {"arrows": "to", "from": "Fibrosis 4 index", "label": "subclass of", "title": "subclass of", "to": "fibroscan"}, {"arrows": "to", "from": "Fibrosis 4 index", "label": "facet of", "title": "facet of", "to": "fibroscan"}, {"arrows": "to", "from": "focal fat sparing", "label": "subclass of", "title": "subclass of", "to": "fibrosis"}, {"arrows": "to", "from": "CT scan", "label": "different from", "title": "different from", "to": "MRI"}, {"arrows": "to", "from": "fibrosis", "label": "subclass of", "title": "subclass of", "to": "progression"}, {"arrows": "to", "from": "dyslipidemia", "label": "has effect", "title": "has effect", "to": "heart disease"}, {"arrows": "to", "from": "dyslipidemia", "label": "subclass of", "title": "subclass of", "to": "diabetes"}, {"arrows": "to", "from": "dyslipidemia", "label": "has cause", "title": "has cause", "to": "diabetes"}, {"arrows": "to", "from": "low carb", "label": "instance of", "title": "instance of", "to": "Lifestyle management"}, {"arrows": "to", "from": "low carb", "label": "subclass of", "title": "subclass of", "to": "Lifestyle management"}, {"arrows": "to", "from": "mediterannean diet", "label": "instance of", "title": "instance of", "to": "Lifestyle management"}, {"arrows": "to", "from": "vitamin E", "label": "subclass of", "title": "subclass of", "to": "enzyme"}, {"arrows": "to", "from": "vitamin E", "label": "subject has role", "title": "subject has role", "to": "physical activity"}, {"arrows": "to", "from": "vitamin E", "label": "medical condition treated", "title": "medical condition treated", "to": "steatohepatitis"}, {"arrows": "to", "from": "steatohepatitis", "label": "drug used for treatment", "title": "drug used for treatment", "to": "vitamin E"}, {"arrows": "to", "from": "COPD", "label": "has cause", "title": "has cause", "to": "smoking"}, {"arrows": "to", "from": "COPD", "label": "has cause", "title": "has cause", "to": "ex smoking"}, {"arrows": "to", "from": "pneumonia", "label": "has cause", "title": "has cause", "to": "COPD"}, {"arrows": "to", "from": "COPD", "label": "has cause", "title": "has cause", "to": "emphysema"}, {"arrows": "to", "from": "COPD", "label": "has effect", "title": "has effect", "to": "emphysema"}, {"arrows": "to", "from": "Ventolin", "label": "medical condition treated", "title": "medical condition treated", "to": "cough"}, {"arrows": "to", "from": "cough", "label": "drug used for treatment", "title": "drug used for treatment", "to": "Ventolin"}, {"arrows": "to", "from": "Ventolin", "label": "medical condition treated", "title": "medical condition treated", "to": "cough symptoms"}, {"arrows": "to", "from": "cough symptoms", "label": "drug used for treatment", "title": "drug used for treatment", "to": "Ventolin"}, {"arrows": "to", "from": "COPD", "label": "has effect", "title": "has effect", "to": "bronchiectasis"}, {"arrows": "to", "from": "bronchiectasis", "label": "subclass of", "title": "subclass of", "to": "COPD"}, {"arrows": "to", "from": "bronchiectasis", "label": "has cause", "title": "has cause", "to": "COPD"}, {"arrows": "to", "from": "hypoxic drive", "label": "facet of", "title": "facet of", "to": "oxygen"}, {"arrows": "to", "from": "hypoxic drive", "label": "has part", "title": "has part", "to": "oxygen"}, {"arrows": "to", "from": "hypoxic drive", "label": "has part", "title": "has part", "to": "carbon dioxide"}, {"arrows": "to", "from": "emphysema", "label": "studied by", "title": "studied by", "to": "pulmonary function testing"}, {"arrows": "to", "from": "pulse oximeter", "label": "uses", "title": "uses", "to": "oxygen"}, {"arrows": "to", "from": "pulse oximeter", "label": "use", "title": "use", "to": "titrate"}, {"arrows": "to", "from": "Azithromycin", "label": "subject has role", "title": "subject has role", "to": "antibiotic"}, {"arrows": "to", "from": "Azithromycin 250 mg", "label": "subject has role", "title": "subject has role", "to": "antibiotic"}, {"arrows": "to", "from": "Azithromycin", "label": "instance of", "title": "instance of", "to": "antibiotic"}, {"arrows": "to", "from": "Gabapentin", "label": "medical condition treated", "title": "medical condition treated", "to": "essential tremor"}, {"arrows": "to", "from": "Gabapentin", "label": "medical condition treated", "title": "medical condition treated", "to": "essential tremors"}, {"arrows": "to", "from": "Inderal", "label": "medical condition treated", "title": "medical condition treated", "to": "essential tremors"}, {"arrows": "to", "from": "essential tremors", "label": "drug used for treatment", "title": "drug used for treatment", "to": "Inderal"}, {"arrows": "to", "from": "depression", "label": "subclass of", "title": "subclass of", "to": "mood"}, {"arrows": "to", "from": "depression", "label": "instance of", "title": "instance of", "to": "mood"}, {"arrows": "to", "from": "BID", "label": "instance of", "title": "instance of", "to": "BID"}, {"arrows": "to", "from": "neuro", "label": "part of", "title": "part of", "to": "neurology"}, {"arrows": "to", "from": "meniscectomy", "label": "medical condition treated", "title": "medical condition treated", "to": "polio"}, {"arrows": "to", "from": "neuro consult", "label": "part of", "title": "part of", "to": "neurology"}, {"arrows": "to", "from": "RBB", "label": "subclass of", "title": "subclass of", "to": "atrial fibrillation"}, {"arrows": "to", "from": "LPR", "label": "has effect", "title": "has effect", "to": "hoarse voice"}, {"arrows": "to", "from": "paroxysmal atrial fibrillation", "label": "subclass of", "title": "subclass of", "to": "RBB"}, {"arrows": "to", "from": "apixaban", "label": "medical condition treated", "title": "medical condition treated", "to": "Moderate Obstructive Sleep Apnea"}, {"arrows": "to", "from": "bipolar disorder", "label": "has part", "title": "has part", "to": "hypomanic"}, {"arrows": "to", "from": "hypomanic", "label": "subclass of", "title": "subclass of", "to": "bipolar disorder"}, {"arrows": "to", "from": "bipolar disorder", "label": "has effect", "title": "has effect", "to": "hypomanic"}, {"arrows": "to", "from": "primidone", "label": "subject has role", "title": "subject has role", "to": "Synthroid"}, {"arrows": "to", "from": "primidone", "label": "subject has role", "title": "subject has role", "to": "BID"}, {"arrows": "to", "from": "Pristiq", "label": "subject has role", "title": "subject has role", "to": "Synthroid"}, {"arrows": "to", "from": "flu vaccine", "label": "subclass of", "title": "subclass of", "to": "Immunizations"}, {"arrows": "to", "from": "flu vaccine", "label": "subclass of", "title": "subclass of", "to": "Immunization"}, {"arrows": "to", "from": "flu", "label": "subclass of", "title": "subclass of", "to": "Immunization"}, {"arrows": "to", "from": "Shingrix", "label": "date of birth", "title": "date of birth", "to": "Nov 15, 2013"}, {"arrows": "to", "from": "Shingrix", "label": "date of birth", "title": "date of birth", "to": "Nov 15, 2015"}, {"arrows": "to", "from": "flu shot", "label": "point in time", "title": "point in time", "to": "Oct 30, 2019"}, {"arrows": "to", "from": "flu shot", "label": "start time", "title": "start time", "to": "Oct 30, 2019"}, {"arrows": "to", "from": "Fluzone Quad", "label": "point in time", "title": "point in time", "to": "2018"}, {"arrows": "to", "from": "opioid", "label": "subclass of", "title": "subclass of", "to": "drug"}, {"arrows": "to", "from": "opioid", "label": "instance of", "title": "instance of", "to": "drug"}, {"arrows": "to", "from": "piously", "label": "facet of", "title": "facet of", "to": "alcoholic drink"}, {"arrows": "to", "from": "TID", "label": "has part", "title": "has part", "to": "primidone"}, {"arrows": "to", "from": "topiramate", "label": "medical condition treated", "title": "medical condition treated", "to": "memory worsening"}, {"arrows": "to", "from": "memory worsening", "label": "drug used for treatment", "title": "drug used for treatment", "to": "topiramate"}, {"arrows": "to", "from": "DBS program", "label": "drug used for treatment", "title": "drug used for treatment", "to": "primidone"}, {"arrows": "to", "from": "TOH", "label": "instance of", "title": "instance of", "to": "pain clinic"}, {"arrows": "to", "from": "ToH", "label": "instance of", "title": "instance of", "to": "pain clinic"}, {"arrows": "to", "from": "TOH", "label": "has part", "title": "has part", "to": "pain clinic"}, {"arrows": "to", "from": "pain clinic", "label": "part of", "title": "part of", "to": "TOH"}, {"arrows": "to", "from": "allergies", "label": "subclass of", "title": "subclass of", "to": "intolerant"}, {"arrows": "to", "from": "eGFR", "label": "facet of", "title": "facet of", "to": "renal function"}, {"arrows": "to", "from": "intolerant", "label": "subclass of", "title": "subclass of", "to": "allergies"}, {"arrows": "to", "from": "allergies", "label": "subclass of", "title": "subclass of", "to": "intolerances"}, {"arrows": "to", "from": "hydromorphone", "label": "medical condition treated", "title": "medical condition treated", "to": "delirium"}, {"arrows": "to", "from": "delirium", "label": "drug used for treatment", "title": "drug used for treatment", "to": "hydromorphone"}, {"arrows": "to", "from": "hydromorphone", "label": "has effect", "title": "has effect", "to": "delirium"}, {"arrows": "to", "from": "dementia", "label": "has effect", "title": "has effect", "to": "delirium"}, {"arrows": "to", "from": "delirium", "label": "subclass of", "title": "subclass of", "to": "dementia"}, {"arrows": "to", "from": "Uacr", "label": "subclass of", "title": "subclass of", "to": "creatinine"}, {"arrows": "to", "from": "Uacr", "label": "has part", "title": "has part", "to": "creatinine"}, {"arrows": "to", "from": "CKD", "label": "subclass of", "title": "subclass of", "to": "HTN"}, {"arrows": "to", "from": "masked hypertension", "label": "subclass of", "title": "subclass of", "to": "obstructive symptoms"}, {"arrows": "to", "from": "Flomax", "label": "subject has role", "title": "subject has role", "to": "NSAIDs"}, {"arrows": "to", "from": "Flomax", "label": "subclass of", "title": "subclass of", "to": "NSAIDs"}, {"arrows": "to", "from": "BPH", "label": "subclass of", "title": "subclass of", "to": "ischemic event"}, {"arrows": "to", "from": "ischemic event", "label": "has cause", "title": "has cause", "to": "obstruction"}, {"arrows": "to", "from": "obstruction", "label": "has effect", "title": "has effect", "to": "ischemic event"}, {"arrows": "to", "from": "BPH", "label": "has effect", "title": "has effect", "to": "ischemic event"}, {"arrows": "to", "from": "GFR", "label": "subclass of", "title": "subclass of", "to": "creatinine"}, {"arrows": "to", "from": "GFR", "label": "has part", "title": "has part", "to": "creatinine"}, {"arrows": "to", "from": "GFR", "label": "facet of", "title": "facet of", "to": "creatinine"}, {"arrows": "to", "from": "ACR", "label": "instance of", "title": "instance of", "to": "signs"}, {"arrows": "to", "from": "BP", "label": "instance of", "title": "instance of", "to": "signs"}, {"arrows": "to", "from": "GFR", "label": "instance of", "title": "instance of", "to": "ACR"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "repulsion": {
+            "centralGravity": 0.2,
+            "damping": 0.09,
+            "nodeDistance": 150,
+            "springConstant": 0.05,
+            "springLength": 200
+        },
+        "solver": "repulsion",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

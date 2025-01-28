@@ -1,0 +1,905 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 1400px;
+                 height: 700px;
+                 background-color: #eeeeee;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 1400px;
+                 height: 700px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="emg">emg</option>
+                                
+                                    <option value="mri">mri</option>
+                                
+                                    <option value="iga">iga</option>
+                                
+                                    <option value="serum protein electrophoresi">serum protein electrophoresi</option>
+                                
+                                    <option value="monoclonal protein">monoclonal protein</option>
+                                
+                                    <option value="dementia">dementia</option>
+                                
+                                    <option value="seizur">seizur</option>
+                                
+                                    <option value="delirium">delirium</option>
+                                
+                                    <option value="parkinson's diseas">parkinson's diseas</option>
+                                
+                                    <option value="mirtazapin">mirtazapin</option>
+                                
+                                    <option value="trazodon">trazodon</option>
+                                
+                                    <option value="biopsi">biopsi</option>
+                                
+                                    <option value="melanoma">melanoma</option>
+                                
+                                    <option value="anorexia">anorexia</option>
+                                
+                                    <option value="lupu">lupu</option>
+                                
+                                    <option value="rheumatolog">rheumatolog</option>
+                                
+                                    <option value="levodopa">levodopa</option>
+                                
+                                    <option value="parkinson">parkinson</option>
+                                
+                                    <option value="pd">pd</option>
+                                
+                                    <option value="carbidopa">carbidopa</option>
+                                
+                                    <option value="pain control">pain control</option>
+                                
+                                    <option value="tremor">tremor</option>
+                                
+                                    <option value="bulla">bulla</option>
+                                
+                                    <option value="pemphigoid">pemphigoid</option>
+                                
+                                    <option value="creatinin">creatinin</option>
+                                
+                                    <option value="liver enzym">liver enzym</option>
+                                
+                                    <option value="jardianc">jardianc</option>
+                                
+                                    <option value="dermat">dermat</option>
+                                
+                                    <option value="lesion">lesion</option>
+                                
+                                    <option value="clobetasol">clobetasol</option>
+                                
+                                    <option value="pantoloc">pantoloc</option>
+                                
+                                    <option value="metformin">metformin</option>
+                                
+                                    <option value="fibromyalgia">fibromyalgia</option>
+                                
+                                    <option value="solid organ malign">solid organ malign</option>
+                                
+                                    <option value="vascul">vascul</option>
+                                
+                                    <option value="peg">peg</option>
+                                
+                                    <option value="polyethylene glycol">polyethylene glycol</option>
+                                
+                                    <option value="imag">imag</option>
+                                
+                                    <option value="xray">xray</option>
+                                
+                                    <option value="cymbalta">cymbalta</option>
+                                
+                                    <option value="pain">pain</option>
+                                
+                                    <option value="chronic pain">chronic pain</option>
+                                
+                                    <option value="antidepress">antidepress</option>
+                                
+                                    <option value="escitalopram">escitalopram</option>
+                                
+                                    <option value="vit d">vit d</option>
+                                
+                                    <option value="lewy body dementia">lewy body dementia</option>
+                                
+                                    <option value="medic">medic</option>
+                                
+                                    <option value="pain ag">pain ag</option>
+                                
+                                    <option value="topical pain ag">topical pain ag</option>
+                                
+                                    <option value="mood/anxiety problem">mood/anxiety problem</option>
+                                
+                                    <option value="anxiety problem">anxiety problem</option>
+                                
+                                    <option value="fluvoxamin">fluvoxamin</option>
+                                
+                                    <option value="seborrh">seborrh</option>
+                                
+                                    <option value="keratos">keratos</option>
+                                
+                                    <option value="keratosi">keratosi</option>
+                                
+                                    <option value="mobil">mobil</option>
+                                
+                                    <option value="physio">physio</option>
+                                
+                                    <option value="hypotens">hypotens</option>
+                                
+                                    <option value="midodrin">midodrin</option>
+                                
+                                    <option value="keratot">keratot</option>
+                                
+                                    <option value="antibiot">antibiot</option>
+                                
+                                    <option value="dermov">dermov</option>
+                                
+                                    <option value="ointment">ointment</option>
+                                
+                                    <option value="steroid">steroid</option>
+                                
+                                    <option value="topical steroid">topical steroid</option>
+                                
+                                    <option value="stool">stool</option>
+                                
+                                    <option value="urin">urin</option>
+                                
+                                    <option value="constip">constip</option>
+                                
+                                    <option value="citalopram">citalopram</option>
+                                
+                                    <option value="copd">copd</option>
+                                
+                                    <option value="hgb">hgb</option>
+                                
+                                    <option value="ferritin">ferritin</option>
+                                
+                                    <option value="ct">ct</option>
+                                
+                                    <option value="ldl">ldl</option>
+                                
+                                    <option value="statin">statin</option>
+                                
+                                    <option value="cholesterol">cholesterol</option>
+                                
+                                    <option value="behaviour">behaviour</option>
+                                
+                                    <option value="symptoms of dementia">symptoms of dementia</option>
+                                
+                                    <option value="social">social</option>
+                                
+                                    <option value="cbt-insomnia">cbt-insomnia</option>
+                                
+                                    <option value="aripiprazol">aripiprazol</option>
+                                
+                                    <option value="fsh">fsh</option>
+                                
+                                    <option value="testosteron">testosteron</option>
+                                
+                                    <option value="gerd">gerd</option>
+                                
+                                    <option value="hx">hx</option>
+                                
+                                    <option value="antipsychot">antipsychot</option>
+                                
+                                    <option value="schizophrenia">schizophrenia</option>
+                                
+                                    <option value="diabet">diabet</option>
+                                
+                                    <option value="antiplatelet therapi">antiplatelet therapi</option>
+                                
+                                    <option value="amlodipin">amlodipin</option>
+                                
+                                    <option value="ace-inhibitor">ace-inhibitor</option>
+                                
+                                    <option value="skin canc">skin canc</option>
+                                
+                                    <option value="scc">scc</option>
+                                
+                                    <option value="gabapentin">gabapentin</option>
+                                
+                                    <option value="echocardiogram">echocardiogram</option>
+                                
+                                    <option value="cardiorenal syndrom">cardiorenal syndrom</option>
+                                
+                                    <option value="duloxetin">duloxetin</option>
+                                
+                                    <option value="iron defici">iron defici</option>
+                                
+                                    <option value="tardive dyskinesia">tardive dyskinesia</option>
+                                
+                                    <option value="cholinesterase inhibitor">cholinesterase inhibitor</option>
+                                
+                                    <option value="coliti">coliti</option>
+                                
+                                    <option value="gastroenter">gastroenter</option>
+                                
+                                    <option value="supine hypertens">supine hypertens</option>
+                                
+                                    <option value="topiram">topiram</option>
+                                
+                                    <option value="seizure med">seizure med</option>
+                                
+                                    <option value="stimul">stimul</option>
+                                
+                                    <option value="ssri">ssri</option>
+                                
+                                    <option value="adrenerg">adrenerg</option>
+                                
+                                    <option value="mellitu">mellitu</option>
+                                
+                                    <option value="antiplatelet">antiplatelet</option>
+                                
+                                    <option value="physiotherapi">physiotherapi</option>
+                                
+                                    <option value="prednison">prednison</option>
+                                
+                                    <option value="polyarthralgia">polyarthralgia</option>
+                                
+                                    <option value="symptomatic hypotens">symptomatic hypotens</option>
+                                
+                                    <option value="bloodwork">bloodwork</option>
+                                
+                                    <option value="plaqu">plaqu</option>
+                                
+                                    <option value="dermatologist">dermatologist</option>
+                                
+                                    <option value="prn">prn</option>
+                                
+                                    <option value="autonomic neuropathi">autonomic neuropathi</option>
+                                
+                                    <option value="fluorin">fluorin</option>
+                                
+                                    <option value="dizzi">dizzi</option>
+                                
+                                    <option value="conservative manag">conservative manag</option>
+                                
+                                    <option value="gastroenterologist">gastroenterologist</option>
+                                
+                                    <option value="colon">colon</option>
+                                
+                                    <option value="adjunctive ag">adjunctive ag</option>
+                                
+                                    <option value="adjunctive treat">adjunctive treat</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#00FF00", "id": "emg", "label": "emg", "shape": "circle"}, {"color": "#00FF00", "id": "mri", "label": "mri", "shape": "circle"}, {"color": "#00FF00", "id": "iga", "label": "iga", "shape": "circle"}, {"color": "#00FF00", "id": "serum protein electrophoresi", "label": "serum protein electrophoresi", "shape": "circle"}, {"color": "#00FF00", "id": "monoclonal protein", "label": "monoclonal protein", "shape": "circle"}, {"color": "#00FF00", "id": "dementia", "label": "dementia", "shape": "circle"}, {"color": "#00FF00", "id": "seizur", "label": "seizur", "shape": "circle"}, {"color": "#00FF00", "id": "delirium", "label": "delirium", "shape": "circle"}, {"color": "#00FF00", "id": "parkinson\u0027s diseas", "label": "parkinson\u0027s diseas", "shape": "circle"}, {"color": "#00FF00", "id": "mirtazapin", "label": "mirtazapin", "shape": "circle"}, {"color": "#00FF00", "id": "trazodon", "label": "trazodon", "shape": "circle"}, {"color": "#00FF00", "id": "biopsi", "label": "biopsi", "shape": "circle"}, {"color": "#00FF00", "id": "melanoma", "label": "melanoma", "shape": "circle"}, {"color": "#00FF00", "id": "anorexia", "label": "anorexia", "shape": "circle"}, {"color": "#00FF00", "id": "lupu", "label": "lupu", "shape": "circle"}, {"color": "#00FF00", "id": "rheumatolog", "label": "rheumatolog", "shape": "circle"}, {"color": "#00FF00", "id": "levodopa", "label": "levodopa", "shape": "circle"}, {"color": "#00FF00", "id": "parkinson", "label": "parkinson", "shape": "circle"}, {"color": "#00FF00", "id": "pd", "label": "pd", "shape": "circle"}, {"color": "#00FF00", "id": "carbidopa", "label": "carbidopa", "shape": "circle"}, {"color": "#00FF00", "id": "pain control", "label": "pain control", "shape": "circle"}, {"color": "#00FF00", "id": "tremor", "label": "tremor", "shape": "circle"}, {"color": "#00FF00", "id": "bulla", "label": "bulla", "shape": "circle"}, {"color": "#00FF00", "id": "pemphigoid", "label": "pemphigoid", "shape": "circle"}, {"color": "#00FF00", "id": "creatinin", "label": "creatinin", "shape": "circle"}, {"color": "#00FF00", "id": "liver enzym", "label": "liver enzym", "shape": "circle"}, {"color": "#00FF00", "id": "jardianc", "label": "jardianc", "shape": "circle"}, {"color": "#00FF00", "id": "dermat", "label": "dermat", "shape": "circle"}, {"color": "#00FF00", "id": "lesion", "label": "lesion", "shape": "circle"}, {"color": "#00FF00", "id": "clobetasol", "label": "clobetasol", "shape": "circle"}, {"color": "#00FF00", "id": "pantoloc", "label": "pantoloc", "shape": "circle"}, {"color": "#00FF00", "id": "metformin", "label": "metformin", "shape": "circle"}, {"color": "#00FF00", "id": "fibromyalgia", "label": "fibromyalgia", "shape": "circle"}, {"color": "#00FF00", "id": "solid organ malign", "label": "solid organ malign", "shape": "circle"}, {"color": "#00FF00", "id": "vascul", "label": "vascul", "shape": "circle"}, {"color": "#00FF00", "id": "peg", "label": "peg", "shape": "circle"}, {"color": "#00FF00", "id": "polyethylene glycol", "label": "polyethylene glycol", "shape": "circle"}, {"color": "#00FF00", "id": "imag", "label": "imag", "shape": "circle"}, {"color": "#00FF00", "id": "xray", "label": "xray", "shape": "circle"}, {"color": "#00FF00", "id": "cymbalta", "label": "cymbalta", "shape": "circle"}, {"color": "#00FF00", "id": "pain", "label": "pain", "shape": "circle"}, {"color": "#00FF00", "id": "chronic pain", "label": "chronic pain", "shape": "circle"}, {"color": "#00FF00", "id": "antidepress", "label": "antidepress", "shape": "circle"}, {"color": "#00FF00", "id": "escitalopram", "label": "escitalopram", "shape": "circle"}, {"color": "#00FF00", "id": "vit d", "label": "vit d", "shape": "circle"}, {"color": "#00FF00", "id": "lewy body dementia", "label": "lewy body dementia", "shape": "circle"}, {"color": "#00FF00", "id": "medic", "label": "medic", "shape": "circle"}, {"color": "#00FF00", "id": "pain ag", "label": "pain ag", "shape": "circle"}, {"color": "#00FF00", "id": "topical pain ag", "label": "topical pain ag", "shape": "circle"}, {"color": "#00FF00", "id": "mood/anxiety problem", "label": "mood/anxiety problem", "shape": "circle"}, {"color": "#00FF00", "id": "anxiety problem", "label": "anxiety problem", "shape": "circle"}, {"color": "#00FF00", "id": "fluvoxamin", "label": "fluvoxamin", "shape": "circle"}, {"color": "#00FF00", "id": "seborrh", "label": "seborrh", "shape": "circle"}, {"color": "#00FF00", "id": "keratos", "label": "keratos", "shape": "circle"}, {"color": "#00FF00", "id": "keratosi", "label": "keratosi", "shape": "circle"}, {"color": "#00FF00", "id": "mobil", "label": "mobil", "shape": "circle"}, {"color": "#00FF00", "id": "physio", "label": "physio", "shape": "circle"}, {"color": "#00FF00", "id": "hypotens", "label": "hypotens", "shape": "circle"}, {"color": "#00FF00", "id": "midodrin", "label": "midodrin", "shape": "circle"}, {"color": "#00FF00", "id": "keratot", "label": "keratot", "shape": "circle"}, {"color": "#00FF00", "id": "antibiot", "label": "antibiot", "shape": "circle"}, {"color": "#00FF00", "id": "dermov", "label": "dermov", "shape": "circle"}, {"color": "#00FF00", "id": "ointment", "label": "ointment", "shape": "circle"}, {"color": "#00FF00", "id": "steroid", "label": "steroid", "shape": "circle"}, {"color": "#00FF00", "id": "topical steroid", "label": "topical steroid", "shape": "circle"}, {"color": "#00FF00", "id": "stool", "label": "stool", "shape": "circle"}, {"color": "#00FF00", "id": "urin", "label": "urin", "shape": "circle"}, {"color": "#00FF00", "id": "constip", "label": "constip", "shape": "circle"}, {"color": "#00FF00", "id": "citalopram", "label": "citalopram", "shape": "circle"}, {"color": "#00FF00", "id": "copd", "label": "copd", "shape": "circle"}, {"color": "#00FF00", "id": "hgb", "label": "hgb", "shape": "circle"}, {"color": "#00FF00", "id": "ferritin", "label": "ferritin", "shape": "circle"}, {"color": "#00FF00", "id": "ct", "label": "ct", "shape": "circle"}, {"color": "#00FF00", "id": "ldl", "label": "ldl", "shape": "circle"}, {"color": "#00FF00", "id": "statin", "label": "statin", "shape": "circle"}, {"color": "#00FF00", "id": "cholesterol", "label": "cholesterol", "shape": "circle"}, {"color": "#00FF00", "id": "behaviour", "label": "behaviour", "shape": "circle"}, {"color": "#00FF00", "id": "symptoms of dementia", "label": "symptoms of dementia", "shape": "circle"}, {"color": "#00FF00", "id": "social", "label": "social", "shape": "circle"}, {"color": "#00FF00", "id": "cbt-insomnia", "label": "cbt-insomnia", "shape": "circle"}, {"color": "#00FF00", "id": "aripiprazol", "label": "aripiprazol", "shape": "circle"}, {"color": "#00FF00", "id": "fsh", "label": "fsh", "shape": "circle"}, {"color": "#00FF00", "id": "testosteron", "label": "testosteron", "shape": "circle"}, {"color": "#00FF00", "id": "gerd", "label": "gerd", "shape": "circle"}, {"color": "#00FF00", "id": "hx", "label": "hx", "shape": "circle"}, {"color": "#00FF00", "id": "antipsychot", "label": "antipsychot", "shape": "circle"}, {"color": "#00FF00", "id": "schizophrenia", "label": "schizophrenia", "shape": "circle"}, {"color": "#00FF00", "id": "diabet", "label": "diabet", "shape": "circle"}, {"color": "#00FF00", "id": "antiplatelet therapi", "label": "antiplatelet therapi", "shape": "circle"}, {"color": "#00FF00", "id": "amlodipin", "label": "amlodipin", "shape": "circle"}, {"color": "#00FF00", "id": "ace-inhibitor", "label": "ace-inhibitor", "shape": "circle"}, {"color": "#00FF00", "id": "skin canc", "label": "skin canc", "shape": "circle"}, {"color": "#00FF00", "id": "scc", "label": "scc", "shape": "circle"}, {"color": "#00FF00", "id": "gabapentin", "label": "gabapentin", "shape": "circle"}, {"color": "#00FF00", "id": "echocardiogram", "label": "echocardiogram", "shape": "circle"}, {"color": "#00FF00", "id": "cardiorenal syndrom", "label": "cardiorenal syndrom", "shape": "circle"}, {"color": "#00FF00", "id": "duloxetin", "label": "duloxetin", "shape": "circle"}, {"color": "#00FF00", "id": "iron defici", "label": "iron defici", "shape": "circle"}, {"color": "#00FF00", "id": "tardive dyskinesia", "label": "tardive dyskinesia", "shape": "circle"}, {"color": "#00FF00", "id": "cholinesterase inhibitor", "label": "cholinesterase inhibitor", "shape": "circle"}, {"color": "#00FF00", "id": "coliti", "label": "coliti", "shape": "circle"}, {"color": "#00FF00", "id": "gastroenter", "label": "gastroenter", "shape": "circle"}, {"color": "#00FF00", "id": "supine hypertens", "label": "supine hypertens", "shape": "circle"}, {"color": "#00FF00", "id": "topiram", "label": "topiram", "shape": "circle"}, {"color": "#00FF00", "id": "seizure med", "label": "seizure med", "shape": "circle"}, {"color": "#00FF00", "id": "stimul", "label": "stimul", "shape": "circle"}, {"color": "#00FF00", "id": "ssri", "label": "ssri", "shape": "circle"}, {"color": "#00FF00", "id": "adrenerg", "label": "adrenerg", "shape": "circle"}, {"color": "#00FF00", "id": "mellitu", "label": "mellitu", "shape": "circle"}, {"color": "#00FF00", "id": "antiplatelet", "label": "antiplatelet", "shape": "circle"}, {"color": "#00FF00", "id": "physiotherapi", "label": "physiotherapi", "shape": "circle"}, {"color": "#00FF00", "id": "prednison", "label": "prednison", "shape": "circle"}, {"color": "#00FF00", "id": "polyarthralgia", "label": "polyarthralgia", "shape": "circle"}, {"color": "#00FF00", "id": "symptomatic hypotens", "label": "symptomatic hypotens", "shape": "circle"}, {"color": "#00FF00", "id": "bloodwork", "label": "bloodwork", "shape": "circle"}, {"color": "#00FF00", "id": "plaqu", "label": "plaqu", "shape": "circle"}, {"color": "#00FF00", "id": "dermatologist", "label": "dermatologist", "shape": "circle"}, {"color": "#00FF00", "id": "prn", "label": "prn", "shape": "circle"}, {"color": "#00FF00", "id": "autonomic neuropathi", "label": "autonomic neuropathi", "shape": "circle"}, {"color": "#00FF00", "id": "fluorin", "label": "fluorin", "shape": "circle"}, {"color": "#00FF00", "id": "dizzi", "label": "dizzi", "shape": "circle"}, {"color": "#00FF00", "id": "conservative manag", "label": "conservative manag", "shape": "circle"}, {"color": "#00FF00", "id": "gastroenterologist", "label": "gastroenterologist", "shape": "circle"}, {"color": "#00FF00", "id": "colon", "label": "colon", "shape": "circle"}, {"color": "#00FF00", "id": "adjunctive ag", "label": "adjunctive ag", "shape": "circle"}, {"color": "#00FF00", "id": "adjunctive treat", "label": "adjunctive treat", "shape": "circle"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "emg", "label": "use", "title": "use", "to": "mri"}, {"arrows": "to", "from": "iga", "label": "studied by", "title": "studied by", "to": "serum protein electrophoresi"}, {"arrows": "to", "from": "iga", "label": "instance of", "title": "instance of", "to": "monoclonal protein"}, {"arrows": "to", "from": "dementia", "label": "subclass of", "title": "subclass of", "to": "seizur"}, {"arrows": "to", "from": "dementia", "label": "has effect", "title": "has effect", "to": "delirium"}, {"arrows": "to", "from": "dementia", "label": "has cause", "title": "has cause", "to": "parkinson\u0027s diseas"}, {"arrows": "to", "from": "dementia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "mirtazapin"}, {"arrows": "to", "from": "dementia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "trazodon"}, {"arrows": "to", "from": "dementia", "label": "facet of", "title": "facet of", "to": "dementia"}, {"arrows": "to", "from": "biopsi", "label": "facet of", "title": "facet of", "to": "melanoma"}, {"arrows": "to", "from": "anorexia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "mirtazapin"}, {"arrows": "to", "from": "lupu", "label": "studied by", "title": "studied by", "to": "rheumatolog"}, {"arrows": "to", "from": "levodopa", "label": "medical condition treated", "title": "medical condition treated", "to": "parkinson\u0027s diseas"}, {"arrows": "to", "from": "levodopa", "label": "medical condition treated", "title": "medical condition treated", "to": "parkinson"}, {"arrows": "to", "from": "levodopa", "label": "medical condition treated", "title": "medical condition treated", "to": "pd"}, {"arrows": "to", "from": "levodopa", "label": "subclass of", "title": "subclass of", "to": "carbidopa"}, {"arrows": "to", "from": "levodopa", "label": "subject has role", "title": "subject has role", "to": "pain control"}, {"arrows": "to", "from": "levodopa", "label": "has effect", "title": "has effect", "to": "tremor"}, {"arrows": "to", "from": "carbidopa", "label": "medical condition treated", "title": "medical condition treated", "to": "parkinson\u0027s diseas"}, {"arrows": "to", "from": "bulla", "label": "subclass of", "title": "subclass of", "to": "pemphigoid"}, {"arrows": "to", "from": "creatinin", "label": "subclass of", "title": "subclass of", "to": "liver enzym"}, {"arrows": "to", "from": "creatinin", "label": "instance of", "title": "instance of", "to": "creatinin"}, {"arrows": "to", "from": "creatinin", "label": "has part", "title": "has part", "to": "jardianc"}, {"arrows": "to", "from": "dermat", "label": "different from", "title": "different from", "to": "lesion"}, {"arrows": "to", "from": "dermat", "label": "drug used for treatment", "title": "drug used for treatment", "to": "clobetasol"}, {"arrows": "to", "from": "pantoloc", "label": "subclass of", "title": "subclass of", "to": "metformin"}, {"arrows": "to", "from": "pantoloc", "label": "medical condition treated", "title": "medical condition treated", "to": "fibromyalgia"}, {"arrows": "to", "from": "solid organ malign", "label": "has part", "title": "has part", "to": "vascul"}, {"arrows": "to", "from": "peg", "label": "has part", "title": "has part", "to": "polyethylene glycol"}, {"arrows": "to", "from": "imag", "label": "different from", "title": "different from", "to": "xray"}, {"arrows": "to", "from": "cymbalta", "label": "medical condition treated", "title": "medical condition treated", "to": "fibromyalgia"}, {"arrows": "to", "from": "cymbalta", "label": "medical condition treated", "title": "medical condition treated", "to": "pain"}, {"arrows": "to", "from": "cymbalta", "label": "medical condition treated", "title": "medical condition treated", "to": "chronic pain"}, {"arrows": "to", "from": "cymbalta", "label": "subject has role", "title": "subject has role", "to": "antidepress"}, {"arrows": "to", "from": "escitalopram", "label": "subject has role", "title": "subject has role", "to": "vit d"}, {"arrows": "to", "from": "escitalopram", "label": "subclass of", "title": "subclass of", "to": "trazodon"}, {"arrows": "to", "from": "escitalopram", "label": "medical condition treated", "title": "medical condition treated", "to": "lewy body dementia"}, {"arrows": "to", "from": "escitalopram", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "escitalopram", "label": "subject has role", "title": "subject has role", "to": "antidepress"}, {"arrows": "to", "from": "escitalopram", "label": "medical condition treated", "title": "medical condition treated", "to": "pain"}, {"arrows": "to", "from": "escitalopram", "label": "subject has role", "title": "subject has role", "to": "pain ag"}, {"arrows": "to", "from": "escitalopram", "label": "subject has role", "title": "subject has role", "to": "topical pain ag"}, {"arrows": "to", "from": "escitalopram", "label": "medical condition treated", "title": "medical condition treated", "to": "fibromyalgia"}, {"arrows": "to", "from": "escitalopram", "label": "medical condition treated", "title": "medical condition treated", "to": "mood/anxiety problem"}, {"arrows": "to", "from": "escitalopram", "label": "medical condition treated", "title": "medical condition treated", "to": "anxiety problem"}, {"arrows": "to", "from": "escitalopram", "label": "different from", "title": "different from", "to": "fluvoxamin"}, {"arrows": "to", "from": "seborrh", "label": "subclass of", "title": "subclass of", "to": "keratos"}, {"arrows": "to", "from": "seborrh", "label": "subclass of", "title": "subclass of", "to": "keratosi"}, {"arrows": "to", "from": "vascul", "label": "subclass of", "title": "subclass of", "to": "solid organ malign"}, {"arrows": "to", "from": "polyethylene glycol", "label": "different from", "title": "different from", "to": "polyethylene glycol"}, {"arrows": "to", "from": "polyethylene glycol", "label": "has part", "title": "has part", "to": "peg"}, {"arrows": "to", "from": "parkinson\u0027s diseas", "label": "drug used for treatment", "title": "drug used for treatment", "to": "levodopa"}, {"arrows": "to", "from": "parkinson\u0027s diseas", "label": "subclass of", "title": "subclass of", "to": "dementia"}, {"arrows": "to", "from": "parkinson\u0027s diseas", "label": "has effect", "title": "has effect", "to": "tremor"}, {"arrows": "to", "from": "delirium", "label": "has effect", "title": "has effect", "to": "dementia"}, {"arrows": "to", "from": "delirium", "label": "subclass of", "title": "subclass of", "to": "seizur"}, {"arrows": "to", "from": "mobil", "label": "studied by", "title": "studied by", "to": "physio"}, {"arrows": "to", "from": "hypotens", "label": "drug used for treatment", "title": "drug used for treatment", "to": "midodrin"}, {"arrows": "to", "from": "parkinson", "label": "drug used for treatment", "title": "drug used for treatment", "to": "levodopa"}, {"arrows": "to", "from": "keratot", "label": "subclass of", "title": "subclass of", "to": "lesion"}, {"arrows": "to", "from": "clobetasol", "label": "subject has role", "title": "subject has role", "to": "antibiot"}, {"arrows": "to", "from": "clobetasol", "label": "subclass of", "title": "subclass of", "to": "dermov"}, {"arrows": "to", "from": "clobetasol", "label": "subject has role", "title": "subject has role", "to": "ointment"}, {"arrows": "to", "from": "clobetasol", "label": "instance of", "title": "instance of", "to": "steroid"}, {"arrows": "to", "from": "clobetasol", "label": "subject has role", "title": "subject has role", "to": "topical steroid"}, {"arrows": "to", "from": "clobetasol", "label": "medical condition treated", "title": "medical condition treated", "to": "dermat"}, {"arrows": "to", "from": "stool", "label": "followed by", "title": "followed by", "to": "urin"}, {"arrows": "to", "from": "stool", "label": "has effect", "title": "has effect", "to": "constip"}, {"arrows": "to", "from": "citalopram", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "citalopram", "label": "has part", "title": "has part", "to": "citalopram"}, {"arrows": "to", "from": "citalopram", "label": "subject has role", "title": "subject has role", "to": "antidepress"}, {"arrows": "to", "from": "citalopram", "label": "medical condition treated", "title": "medical condition treated", "to": "fibromyalgia"}, {"arrows": "to", "from": "copd", "label": "drug used for treatment", "title": "drug used for treatment", "to": "antibiot"}, {"arrows": "to", "from": "copd", "label": "drug used for treatment", "title": "drug used for treatment", "to": "mirtazapin"}, {"arrows": "to", "from": "hgb", "label": "subclass of", "title": "subclass of", "to": "hgb"}, {"arrows": "to", "from": "hgb", "label": "subclass of", "title": "subclass of", "to": "ferritin"}, {"arrows": "to", "from": "tremor", "label": "has cause", "title": "has cause", "to": "parkinson\u0027s diseas"}, {"arrows": "to", "from": "tremor", "label": "drug used for treatment", "title": "drug used for treatment", "to": "trazodon"}, {"arrows": "to", "from": "tremor", "label": "drug used for treatment", "title": "drug used for treatment", "to": "levodopa"}, {"arrows": "to", "from": "ct", "label": "different from", "title": "different from", "to": "mri"}, {"arrows": "to", "from": "ct", "label": "subclass of", "title": "subclass of", "to": "imag"}, {"arrows": "to", "from": "ct", "label": "uses", "title": "uses", "to": "xray"}, {"arrows": "to", "from": "ldl", "label": "drug used for treatment", "title": "drug used for treatment", "to": "statin"}, {"arrows": "to", "from": "ldl", "label": "subclass of", "title": "subclass of", "to": "cholesterol"}, {"arrows": "to", "from": "behaviour", "label": "subclass of", "title": "subclass of", "to": "symptoms of dementia"}, {"arrows": "to", "from": "behaviour", "label": "part of", "title": "part of", "to": "social"}, {"arrows": "to", "from": "cbt-insomnia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "aripiprazol"}, {"arrows": "to", "from": "fsh", "label": "has part", "title": "has part", "to": "testosteron"}, {"arrows": "to", "from": "gerd", "label": "subclass of", "title": "subclass of", "to": "dementia"}, {"arrows": "to", "from": "gerd", "label": "subclass of", "title": "subclass of", "to": "gerd"}, {"arrows": "to", "from": "hx", "label": "facet of", "title": "facet of", "to": "copd"}, {"arrows": "to", "from": "trazodon", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "trazodon", "label": "drug used for treatment", "title": "drug used for treatment", "to": "trazodon"}, {"arrows": "to", "from": "trazodon", "label": "subject has role", "title": "subject has role", "to": "antipsychot"}, {"arrows": "to", "from": "trazodon", "label": "medical condition treated", "title": "medical condition treated", "to": "schizophrenia"}, {"arrows": "to", "from": "trazodon", "label": "medical condition treated", "title": "medical condition treated", "to": "dementia"}, {"arrows": "to", "from": "trazodon", "label": "medical condition treated", "title": "medical condition treated", "to": "tremor"}, {"arrows": "to", "from": "anxiety problem", "label": "drug used for treatment", "title": "drug used for treatment", "to": "escitalopram"}, {"arrows": "to", "from": "jardianc", "label": "medical condition treated", "title": "medical condition treated", "to": "diabet"}, {"arrows": "to", "from": "jardianc", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "jardianc", "label": "subject has role", "title": "subject has role", "to": "antiplatelet therapi"}, {"arrows": "to", "from": "jardianc", "label": "different from", "title": "different from", "to": "amlodipin"}, {"arrows": "to", "from": "jardianc", "label": "instance of", "title": "instance of", "to": "metformin"}, {"arrows": "to", "from": "jardianc", "label": "has part", "title": "has part", "to": "creatinin"}, {"arrows": "to", "from": "jardianc", "label": "subject has role", "title": "subject has role", "to": "ace-inhibitor"}, {"arrows": "to", "from": "melanoma", "label": "studied by", "title": "studied by", "to": "biopsi"}, {"arrows": "to", "from": "melanoma", "label": "subclass of", "title": "subclass of", "to": "skin canc"}, {"arrows": "to", "from": "melanoma", "label": "has effect", "title": "has effect", "to": "scc"}, {"arrows": "to", "from": "pain", "label": "drug used for treatment", "title": "drug used for treatment", "to": "gabapentin"}, {"arrows": "to", "from": "pain", "label": "drug used for treatment", "title": "drug used for treatment", "to": "escitalopram"}, {"arrows": "to", "from": "pain", "label": "drug used for treatment", "title": "drug used for treatment", "to": "cymbalta"}, {"arrows": "to", "from": "liver enzym", "label": "has part", "title": "has part", "to": "ferritin"}, {"arrows": "to", "from": "echocardiogram", "label": "use", "title": "use", "to": "ct"}, {"arrows": "to", "from": "echocardiogram", "label": "facet of", "title": "facet of", "to": "cardiorenal syndrom"}, {"arrows": "to", "from": "duloxetin", "label": "medical condition treated", "title": "medical condition treated", "to": "fibromyalgia"}, {"arrows": "to", "from": "duloxetin", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "duloxetin", "label": "medical condition treated", "title": "medical condition treated", "to": "constip"}, {"arrows": "to", "from": "duloxetin", "label": "subject has role", "title": "subject has role", "to": "antidepress"}, {"arrows": "to", "from": "iron defici", "label": "drug used for treatment", "title": "drug used for treatment", "to": "ferritin"}, {"arrows": "to", "from": "testosteron", "label": "has part", "title": "has part", "to": "fsh"}, {"arrows": "to", "from": "tardive dyskinesia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "aripiprazol"}, {"arrows": "to", "from": "constip", "label": "has cause", "title": "has cause", "to": "stool"}, {"arrows": "to", "from": "constip", "label": "drug used for treatment", "title": "drug used for treatment", "to": "duloxetin"}, {"arrows": "to", "from": "pemphigoid", "label": "subclass of", "title": "subclass of", "to": "vascul"}, {"arrows": "to", "from": "cholinesterase inhibitor", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "cholinesterase inhibitor", "label": "medical condition treated", "title": "medical condition treated", "to": "seizur"}, {"arrows": "to", "from": "coliti", "label": "subclass of", "title": "subclass of", "to": "gastroenter"}, {"arrows": "to", "from": "chronic pain", "label": "subclass of", "title": "subclass of", "to": "pain"}, {"arrows": "to", "from": "chronic pain", "label": "has cause", "title": "has cause", "to": "fibromyalgia"}, {"arrows": "to", "from": "chronic pain", "label": "drug used for treatment", "title": "drug used for treatment", "to": "cymbalta"}, {"arrows": "to", "from": "supine hypertens", "label": "drug used for treatment", "title": "drug used for treatment", "to": "midodrin"}, {"arrows": "to", "from": "topiram", "label": "medical condition treated", "title": "medical condition treated", "to": "seizur"}, {"arrows": "to", "from": "mri", "label": "subclass of", "title": "subclass of", "to": "imag"}, {"arrows": "to", "from": "mri", "label": "different from", "title": "different from", "to": "ct"}, {"arrows": "to", "from": "mirtazapin", "label": "subject has role", "title": "subject has role", "to": "seizure med"}, {"arrows": "to", "from": "mirtazapin", "label": "subject has role", "title": "subject has role", "to": "stimul"}, {"arrows": "to", "from": "mirtazapin", "label": "medical condition treated", "title": "medical condition treated", "to": "anorexia"}, {"arrows": "to", "from": "mirtazapin", "label": "medical condition treated", "title": "medical condition treated", "to": "dementia"}, {"arrows": "to", "from": "mirtazapin", "label": "medical condition treated", "title": "medical condition treated", "to": "copd"}, {"arrows": "to", "from": "mirtazapin", "label": "subject has role", "title": "subject has role", "to": "ssri"}, {"arrows": "to", "from": "mirtazapin", "label": "subject has role", "title": "subject has role", "to": "steroid"}, {"arrows": "to", "from": "mirtazapin", "label": "subject has role", "title": "subject has role", "to": "adrenerg"}, {"arrows": "to", "from": "fibromyalgia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "cymbalta"}, {"arrows": "to", "from": "fibromyalgia", "label": "subclass of", "title": "subclass of", "to": "chronic pain"}, {"arrows": "to", "from": "fibromyalgia", "label": "subclass of", "title": "subclass of", "to": "pain"}, {"arrows": "to", "from": "fibromyalgia", "label": "subclass of", "title": "subclass of", "to": "gerd"}, {"arrows": "to", "from": "fibromyalgia", "label": "subclass of", "title": "subclass of", "to": "mellitu"}, {"arrows": "to", "from": "fibromyalgia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "duloxetin"}, {"arrows": "to", "from": "fibromyalgia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "gabapentin"}, {"arrows": "to", "from": "fibromyalgia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "pantoloc"}, {"arrows": "to", "from": "fibromyalgia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "escitalopram"}, {"arrows": "to", "from": "fibromyalgia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "citalopram"}, {"arrows": "to", "from": "metformin", "label": "medical condition treated", "title": "medical condition treated", "to": "diabet"}, {"arrows": "to", "from": "metformin", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "schizophrenia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "trazodon"}, {"arrows": "to", "from": "schizophrenia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "aripiprazol"}, {"arrows": "to", "from": "amlodipin", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "amlodipin", "label": "medical condition treated", "title": "medical condition treated", "to": "hypotens"}, {"arrows": "to", "from": "statin", "label": "has effect", "title": "has effect", "to": "ldl"}, {"arrows": "to", "from": "statin", "label": "subclass of", "title": "subclass of", "to": "antiplatelet"}, {"arrows": "to", "from": "xray", "label": "different from", "title": "different from", "to": "imag"}, {"arrows": "to", "from": "fluvoxamin", "label": "medical condition treated", "title": "medical condition treated", "to": "mood/anxiety problem"}, {"arrows": "to", "from": "fluvoxamin", "label": "different from", "title": "different from", "to": "escitalopram"}, {"arrows": "to", "from": "physiotherapi", "label": "different from", "title": "different from", "to": "physiotherapi"}, {"arrows": "to", "from": "physiotherapi", "label": "field of work", "title": "field of work", "to": "pain"}, {"arrows": "to", "from": "seizur", "label": "drug used for treatment", "title": "drug used for treatment", "to": "topiram"}, {"arrows": "to", "from": "seizur", "label": "has effect", "title": "has effect", "to": "delirium"}, {"arrows": "to", "from": "seizur", "label": "has cause", "title": "has cause", "to": "hx"}, {"arrows": "to", "from": "seizur", "label": "drug used for treatment", "title": "drug used for treatment", "to": "cholinesterase inhibitor"}, {"arrows": "to", "from": "rheumatolog", "label": "drug used for treatment", "title": "drug used for treatment", "to": "prednison"}, {"arrows": "to", "from": "rheumatolog", "label": "field of work", "title": "field of work", "to": "rheumatolog"}, {"arrows": "to", "from": "rheumatolog", "label": "studies", "title": "studies", "to": "lupu"}, {"arrows": "to", "from": "rheumatolog", "label": "studies", "title": "studies", "to": "polyarthralgia"}, {"arrows": "to", "from": "symptomatic hypotens", "label": "drug used for treatment", "title": "drug used for treatment", "to": "midodrin"}, {"arrows": "to", "from": "prednison", "label": "subject has role", "title": "subject has role", "to": "antibiot"}, {"arrows": "to", "from": "prednison", "label": "medical condition treated", "title": "medical condition treated", "to": "rheumatolog"}, {"arrows": "to", "from": "ferritin", "label": "subclass of", "title": "subclass of", "to": "liver enzym"}, {"arrows": "to", "from": "ferritin", "label": "has cause", "title": "has cause", "to": "iron defici"}, {"arrows": "to", "from": "ferritin", "label": "part of", "title": "part of", "to": "hgb"}, {"arrows": "to", "from": "ferritin", "label": "instance of", "title": "instance of", "to": "bloodwork"}, {"arrows": "to", "from": "cholesterol", "label": "has effect", "title": "has effect", "to": "ldl"}, {"arrows": "to", "from": "social", "label": "subclass of", "title": "subclass of", "to": "behaviour"}, {"arrows": "to", "from": "scc", "label": "subclass of", "title": "subclass of", "to": "melanoma"}, {"arrows": "to", "from": "plaqu", "label": "subclass of", "title": "subclass of", "to": "lesion"}, {"arrows": "to", "from": "plaqu", "label": "studied by", "title": "studied by", "to": "dermatologist"}, {"arrows": "to", "from": "polyarthralgia", "label": "studied by", "title": "studied by", "to": "rheumatolog"}, {"arrows": "to", "from": "midodrin", "label": "medical condition treated", "title": "medical condition treated", "to": "supine hypertens"}, {"arrows": "to", "from": "midodrin", "label": "subject has role", "title": "subject has role", "to": "prn"}, {"arrows": "to", "from": "midodrin", "label": "medical condition treated", "title": "medical condition treated", "to": "autonomic neuropathi"}, {"arrows": "to", "from": "midodrin", "label": "instance of", "title": "instance of", "to": "fluorin"}, {"arrows": "to", "from": "midodrin", "label": "medical condition treated", "title": "medical condition treated", "to": "dizzi"}, {"arrows": "to", "from": "midodrin", "label": "medical condition treated", "title": "medical condition treated", "to": "symptomatic hypotens"}, {"arrows": "to", "from": "midodrin", "label": "medical condition treated", "title": "medical condition treated", "to": "hypotens"}, {"arrows": "to", "from": "keratos", "label": "subclass of", "title": "subclass of", "to": "lesion"}, {"arrows": "to", "from": "keratos", "label": "subclass of", "title": "subclass of", "to": "melanoma"}, {"arrows": "to", "from": "physio", "label": "studies", "title": "studies", "to": "mobil"}, {"arrows": "to", "from": "physio", "label": "part of", "title": "part of", "to": "physio"}, {"arrows": "to", "from": "physio", "label": "part of", "title": "part of", "to": "conservative manag"}, {"arrows": "to", "from": "lesion", "label": "different from", "title": "different from", "to": "dermat"}, {"arrows": "to", "from": "gabapentin", "label": "medical condition treated", "title": "medical condition treated", "to": "pain"}, {"arrows": "to", "from": "gabapentin", "label": "instance of", "title": "instance of", "to": "medic"}, {"arrows": "to", "from": "gabapentin", "label": "medical condition treated", "title": "medical condition treated", "to": "fibromyalgia"}, {"arrows": "to", "from": "gabapentin", "label": "different from", "title": "different from", "to": "gabapentin"}, {"arrows": "to", "from": "gastroenterologist", "label": "studies", "title": "studies", "to": "colon"}, {"arrows": "to", "from": "gastroenterologist", "label": "field of this occupation", "title": "field of this occupation", "to": "gastroenterologist"}, {"arrows": "to", "from": "pd", "label": "drug used for treatment", "title": "drug used for treatment", "to": "levodopa"}, {"arrows": "to", "from": "aripiprazol", "label": "subject has role", "title": "subject has role", "to": "antipsychot"}, {"arrows": "to", "from": "aripiprazol", "label": "medical condition treated", "title": "medical condition treated", "to": "schizophrenia"}, {"arrows": "to", "from": "aripiprazol", "label": "medical condition treated", "title": "medical condition treated", "to": "tardive dyskinesia"}, {"arrows": "to", "from": "aripiprazol", "label": "medical condition treated", "title": "medical condition treated", "to": "cbt-insomnia"}, {"arrows": "to", "from": "aripiprazol", "label": "subject has role", "title": "subject has role", "to": "adjunctive ag"}, {"arrows": "to", "from": "aripiprazol", "label": "subject has role", "title": "subject has role", "to": "adjunctive treat"}, {"arrows": "to", "from": "colon", "label": "studied by", "title": "studied by", "to": "gastroenterologist"}, {"arrows": "to", "from": "dermov", "label": "instance of", "title": "instance of", "to": "steroid"}, {"arrows": "to", "from": "dermov", "label": "medical condition treated", "title": "medical condition treated", "to": "keratot"}, {"arrows": "to", "from": "dermov", "label": "has part", "title": "has part", "to": "clobetasol"}, {"arrows": "to", "from": "lewy body dementia", "label": "subclass of", "title": "subclass of", "to": "dementia"}, {"arrows": "to", "from": "lewy body dementia", "label": "subclass of", "title": "subclass of", "to": "lesion"}, {"arrows": "to", "from": "lewy body dementia", "label": "drug used for treatment", "title": "drug used for treatment", "to": "escitalopram"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "repulsion": {
+            "centralGravity": 0.2,
+            "damping": 0.09,
+            "nodeDistance": 150,
+            "springConstant": 0.05,
+            "springLength": 200
+        },
+        "solver": "repulsion",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
