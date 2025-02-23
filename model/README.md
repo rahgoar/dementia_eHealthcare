@@ -1,1 +1,1 @@
-Model pickle file
+champion model (SVM) pickle file
