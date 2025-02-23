@@ -8,4 +8,4 @@ Rahgozar A, Afkham A, Goulet D, Fung C, Moroz I, Archibald D, Keely E, Liddy C, 
 
 
 There are three separate knowledge-graphs KG. Please download the html files so that you'd be able to interact and search the terms. As the name implies, one is the confusing terms, topic-terms is the result of clustering and the other is housing the most central terms in dementia cases.
-Confusion graph, has the important terms that confused the model to predict the dementia. Confusion is in the context of authentic patient cases of dementia vs. cases that looked like dementia.
+Confusion graph, has the important terms that confused the model to predict the dementia. Confusion is in the context of binary prediction, authentic patient cases of dementia vs. cases that looked like dementia.
