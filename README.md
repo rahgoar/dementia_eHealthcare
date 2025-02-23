@@ -10,6 +10,7 @@ In this study, we present a novel approach to automatically identify potential d
 
 - `𝜉-Algorithm/`: Contains the implementation of the 𝜉-Algorithm, a core component of our predictive model.
 - `chatbot/`: Includes the code and resources for the chatbot designed to interact with users and answer quesitons.
+- `model/`: Includes the champion model pickle file. 
 - `network_centrality.html`: Interactive knowledge graph highlighting central terms related to dementia.
 - `network_confusion.html`: Knowledge graph depicting terms that often lead to model confusion.
 - `network_topic_keywords.html`: Visualization of clustered topic terms pertinent to dementia.
